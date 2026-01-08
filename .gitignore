@@ -1,0 +1,30 @@
+# Arquivo .gitignore para o gerador_mensagens_merchan
+
+# Configurações sensíveis
+config.py
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# pywhatkit
+PyWhatKit_DB.txt
+
+# Virtualenvs
+.venv/
+venv/
+ENV/
+env/
+
+# Logs / outputs
+logs/
+*.log
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
