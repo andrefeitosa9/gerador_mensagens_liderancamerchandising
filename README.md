@@ -23,7 +23,7 @@ Gera e envia via WhatsApp Web um resumo diário de **aderência ao roteiro** par
 ## Instalação
 
 ```bat
-cd "B:\Trade\Compartilhado\Inteligência de Mercado\Scripts\gerador_mensagens_merchan"
+cd "B:\Trade\Compartilhado\Inteligência de Mercado\Scripts\gerador_mensagens_liderancamerchandising"
 python -m pip install -r requirements.txt
 ```
 
