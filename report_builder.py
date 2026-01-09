@@ -103,7 +103,7 @@ def build_general_leader_message(
     period2_title: str = "Mês",
 ) -> str:
     lines: list[str] = []
-    lines.append(f"📊 Relatório Merchandising (ref.: {ref_date.strftime('%d/%m/%Y')})")
+    lines.append("📊 Relatório Merchandising")
     lines.append("")
     lines.append(f"Aderência ao Roteiro Geral (Ontem {day_label} | {period2_title} {period2_label})")
     lines.append("")
@@ -184,7 +184,7 @@ def build_area_leader_message(
     collaborators_month_by_name: dict[str, AdherenceMetric],
 ) -> str:
     lines: list[str] = []
-    lines.append(f"📊 Relatório Merchan - {area_name} (ref.: {ref_date.strftime('%d/%m/%Y')})")
+    lines.append(f"📊 Relatório Merchan - {area_name}")
     lines.append("")
     lines.append(f"Aderência ao Roteiro {area_name}")
     lines.append("")
@@ -226,7 +226,7 @@ def build_diretoria_message(
     grupos_section_title: str = "🏪 Grupos Econômicos Importantes",
 ) -> str:
     lines: list[str] = []
-    lines.append(f"📊 Relatório Merchandising (ref.: {ref_date.strftime('%d/%m/%Y')})")
+    lines.append("📊 Relatório Merchandising")
     lines.append("")
     lines.append(f"Aderência ao Roteiro Geral (Semana {semana_label} | Mês {mes_label})")
     lines.append("")

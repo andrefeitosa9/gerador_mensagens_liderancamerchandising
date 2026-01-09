@@ -167,7 +167,8 @@ def main() -> int:
 			grupos_mes_rows = db.query_rows(grupos_importantes_sql(ms, me))
 
 		mensagens_envio: list[dict] = []
-		ontem_label = (ref - timedelta(days=1)).strftime("%d/%m")
+		# 'Ontem' na mensagem refere-se ao dia consultado em dt_start/dt_end (ref)
+		ontem_label = ref.strftime("%d/%m")
 
 		# Líder Merchan (diário)
 		if not args.somente_diretoria:
