@@ -198,15 +198,24 @@ def build_area_leader_message(
     def sort_key(name: str):
         return name.casefold()
 
-    all_names = set(collaborators_month_by_name.keys()) | set(collaborators_day_by_name.keys())
+    # Regra: para líderes de área, listar apenas colaboradores que tiveram
+    # visitas_planejadas > 0 no dia de ontem.
+    eligible_names = [
+        name
+        for name, day_metric in collaborators_day_by_name.items()
+        if day_metric.visitas_planejadas > 0
+    ]
 
-    for name in sorted(all_names, key=sort_key):
-        m = collaborators_month_by_name.get(name, AdherenceMetric(0, 0, None))
+    if not eligible_names:
+        lines.append("Sem colaboradores com visitas planejadas ontem.")
+        lines.append("")
+        return "\n".join(lines).strip() + "\n"
+
+    for name in sorted(eligible_names, key=sort_key):
         d = collaborators_day_by_name.get(name, AdherenceMetric(0, 0, None))
+        m = collaborators_month_by_name.get(name, AdherenceMetric(0, 0, None))
         lines.append(f"- {name}:")
-        lines.append(
-            f"Ontem {fmt_pct(d.aderencia_pct)}  |  Mês {fmt_pct(m.aderencia_pct, with_icon=True)}"
-        )
+        lines.append(f"Ontem {fmt_pct(d.aderencia_pct)}  |  Mês {fmt_pct(m.aderencia_pct, with_icon=True)}")
         lines.append("")
 
     return "\n".join(lines).strip() + "\n"
