@@ -51,7 +51,7 @@ def fmt_pct(p: float | None, *, with_icon: bool = False) -> str:
     else:
         icon = "✅"
 
-    return f"{icon} {p:.1f}%"
+    return f"{p:.1f}% {icon}"
 
 
 def normalize_phone_to_e164(raw: str) -> str:
