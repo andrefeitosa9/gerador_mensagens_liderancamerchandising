@@ -77,8 +77,8 @@ def main() -> int:
 	ms = month_start(ref)
 	me = hoje  # mês até ontem (exclui o dia de execução)
 
-	month_label = f"Mês {ms.strftime('%m/%Y')}"
-	include_grupo_rede = hoje.weekday() == 0  # segunda
+	month_label = f"{ms.strftime('%m')}"
+	include_grupo_rede = True  # Envia diariamente
 
 	db = Database()
 	try:
@@ -92,7 +92,7 @@ def main() -> int:
 		leaders_df["colaborador_superior"] = leaders_df["colaborador_superior"].fillna("")
 		leaders_df["telefone"] = leaders_df["telefone"].fillna("")
 
-		general_mask = leaders_df["area_merchan"].str.strip().str.lower() == "merchan"
+		general_mask = leaders_df["area_merchan"].str.strip().str.lower().isin(["merchan", "diretoria"])
 		general_leaders = leaders_df[general_mask]
 		area_leaders = leaders_df[~general_mask]
 
@@ -108,9 +108,13 @@ def main() -> int:
 			name = (row.get("area_merchan") or "Não Identificada").strip()
 			areas_month_by_name[name] = metric_from_row(row.to_dict())
 
-		grupo_rede_rows = None
+		grupo_rede_day_rows = None
+		grupo_rede_month_rows = None
 		if include_grupo_rede:
-			grupo_rede_rows = db.query_df(grupo_rede_month_sql(ms, me)).to_dict("records")
+			grupo_rede_day_df = db.query_df(grupo_rede_month_sql(dt_start, dt_end))
+			grupo_rede_month_df = db.query_df(grupo_rede_month_sql(ms, me))
+			grupo_rede_day_rows = grupo_rede_day_df.to_dict("records") if not grupo_rede_day_df.empty else []
+			grupo_rede_month_rows = grupo_rede_month_df.to_dict("records") if not grupo_rede_month_df.empty else []
 
 		mensagens_envio: list[dict] = []
 
@@ -127,7 +131,8 @@ def main() -> int:
 				areas_day=areas_day_df.to_dict("records"),
 				areas_month_by_name=areas_month_by_name,
 				include_grupo_rede=include_grupo_rede,
-				grupo_rede_rows=grupo_rede_rows,
+				grupo_rede_day_rows=grupo_rede_day_rows,
+				grupo_rede_month_rows=grupo_rede_month_rows,
 			)
 			mensagens_envio.append(
 				{

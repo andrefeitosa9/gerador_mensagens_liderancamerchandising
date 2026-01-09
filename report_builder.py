@@ -95,45 +95,69 @@ def build_general_leader_message(
     areas_day: list[dict],
     areas_month_by_name: dict[str, AdherenceMetric],
     include_grupo_rede: bool,
-    grupo_rede_rows: list[dict] | None = None,
+    grupo_rede_day_rows: list[dict] | None = None,
+    grupo_rede_month_rows: list[dict] | None = None,
 ) -> str:
     lines: list[str] = []
     lines.append(f"📊 Relatório Merchandising (ref.: {ref_date.strftime('%d/%m/%Y')})")
     lines.append("")
     lines.append("Aderência ao Roteiro Geral")
+    lines.append("")
     lines.append(
-        f"Ontem: {fmt_pct(overall_day.aderencia_pct)}"
-        f"  |  Mês: {fmt_pct(overall_month.aderencia_pct, with_icon=True)}"
+        f"Ontem: {fmt_pct(overall_day.aderencia_pct)}  |  Mês: {fmt_pct(overall_month.aderencia_pct, with_icon=True)}"
     )
     lines.append("")
     lines.append("📍 Aderência ao Roteiro por Área")
+    lines.append("")
 
     for r in order_areas(areas_day):
         area = (r.get("area_merchan") or "Não Identificada").strip()
         day_metric = metric_from_row(r)
         month_metric = areas_month_by_name.get(area, AdherenceMetric(0, 0, None))
+        lines.append(f"- {area}:")
         lines.append(
-            f"- {area}: Ontem {fmt_pct(day_metric.aderencia_pct)}"
-            f"  |  Mês {fmt_pct(month_metric.aderencia_pct, with_icon=True)}"
+            f"Ontem {fmt_pct(day_metric.aderencia_pct)}  |  Mês {fmt_pct(month_metric.aderencia_pct, with_icon=True)}"
         )
-
-    if include_grupo_rede:
         lines.append("")
-        lines.append(f"🏪 Grupos/Redes Importantes ({month_label})")
-        for r in (grupo_rede_rows or []):
-            unidade = (r.get("unidade") or "").strip()
-            feitas = _safe_int(r.get("visitas_feitas", 0))
-            planejadas = _safe_int(r.get("visitas_planejadas", 0))
-            pct = None
+
+    if include_grupo_rede and grupo_rede_day_rows and grupo_rede_month_rows:
+        lines.append(f"🏪 Grupos/Redes Importantes (Mês {month_label})")
+        lines.append("")
+        
+        # Criar dicionários para buscar por unidade
+        day_by_unit = {(r.get("unidade") or "").strip(): r for r in grupo_rede_day_rows}
+        month_by_unit = {(r.get("unidade") or "").strip(): r for r in grupo_rede_month_rows}
+        
+        # Unir todas as unidades
+        all_units = set(day_by_unit.keys()) | set(month_by_unit.keys())
+        
+        for unidade in sorted(all_units):
+            if not unidade:
+                continue
+            
+            day_r = day_by_unit.get(unidade, {})
+            month_r = month_by_unit.get(unidade, {})
+            
+            day_pct = None
+            month_pct = None
+            
             try:
-                pct = float(r.get("aderencia_pct"))
+                if day_r.get("aderencia_pct") is not None:
+                    day_pct = float(day_r.get("aderencia_pct"))
             except Exception:
-                pct = None
+                pass
+            
+            try:
+                if month_r.get("aderencia_pct") is not None:
+                    month_pct = float(month_r.get("aderencia_pct"))
+            except Exception:
+                pass
+            
+            lines.append(f"- {unidade}:")
             lines.append(
-                f"- {unidade}: {fmt_pct(pct, with_icon=True)}"
-                f"  |  Planejadas {planejadas}"
-                f"  |  Feitas {feitas}"
+                f"Ontem {fmt_pct(day_pct)}  |  Mês {fmt_pct(month_pct, with_icon=True)}"
             )
+            lines.append("")
 
     return "\n".join(lines).strip() + "\n"
 
@@ -152,26 +176,26 @@ def build_area_leader_message(
     lines.append(f"📊 Relatório Merchan - {area_name} (ref.: {ref_date.strftime('%d/%m/%Y')})")
     lines.append("")
     lines.append(f"Aderência ao Roteiro {area_name}")
+    lines.append("")
     lines.append(
-        f"Ontem: {fmt_pct(area_day.aderencia_pct)}"
-        f"  |  Mês: {fmt_pct(area_month.aderencia_pct, with_icon=True)}"
+        f"Ontem: {fmt_pct(area_day.aderencia_pct)}  |  Mês: {fmt_pct(area_month.aderencia_pct, with_icon=True)}"
     )
     lines.append("")
-    lines.append("👥 Colaboradores (ordem por aderência do mês)")
+    lines.append("👥 Colaboradores (ordem alfabética)")
+    lines.append("")
 
     def sort_key(name: str):
         return name.casefold()
 
     all_names = set(collaborators_month_by_name.keys()) | set(collaborators_day_by_name.keys())
 
-    lines[-1] = "👥 Colaboradores (ordem alfabética)"
-
     for name in sorted(all_names, key=sort_key):
         m = collaborators_month_by_name.get(name, AdherenceMetric(0, 0, None))
         d = collaborators_day_by_name.get(name, AdherenceMetric(0, 0, None))
+        lines.append(f"- {name}:")
         lines.append(
-            f"- {name}: Ontem {fmt_pct(d.aderencia_pct)}"
-            f"  |  Mês {fmt_pct(m.aderencia_pct, with_icon=True)}"
+            f"Ontem {fmt_pct(d.aderencia_pct)}  |  Mês {fmt_pct(m.aderencia_pct, with_icon=True)}"
         )
+        lines.append("")
 
     return "\n".join(lines).strip() + "\n"
