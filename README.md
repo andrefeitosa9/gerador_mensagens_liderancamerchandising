@@ -9,7 +9,10 @@ Gera e envia via WhatsApp Web um resumo diário de **aderência ao roteiro** par
 - Líder geral (área = `Merchan`) recebe:
   - Aderência geral (Ontem e Mês)
   - Aderência por área (Ontem e Mês)
-  - Na segunda, recebe também o bloco de **Grupos/Redes importantes (mês)**
+- Recebe também o bloco de **Grupos/Redes importantes**
+- Diretoria (área = `Diretoria`) recebe **somente na segunda**:
+  - Aderência geral (Semana Anterior e Mês)
+  - Bloco de **Grupos econômicos importantes** (Semana Anterior e Mês; sem redes)
 - Líderes de área recebem:
   - Aderência da área (Ontem e Mês)
   - Colaboradores da área (ordem alfabética) com Ontem e Mês

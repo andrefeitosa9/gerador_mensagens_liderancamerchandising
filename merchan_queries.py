@@ -205,15 +205,62 @@ GROUP BY mp.Colaborador
 """.strip()
 
 
-def grupo_rede_month_sql(month_start: date, month_end_exclusive: date) -> str:
-    ms = sql_date(month_start)
-    me = sql_date(month_end_exclusive)
+def unidades_importantes_sql(
+    dt_start: date,
+    dt_end_exclusive: date,
+    *,
+    include_grupos: bool = True,
+    include_redes: bool = True,
+) -> str:
+    """Aderência por unidades importantes (Grupos Econômicos e/ou Redes).
+
+    Observação: o período é [dt_start, dt_end_exclusive).
+    """
+    start = sql_date(dt_start)
+    end = sql_date(dt_end_exclusive)
     checkins = _checkin_in_list_sql()
     fora_ok = _fora_do_roteiro_nao_sql("mp")
 
-    # Renderiza as listas em SQL IN (...)
+    if not include_grupos and not include_redes:
+        # Query vazia (retorna 0 linhas)
+        return (
+            "SELECT TOP 0 '' AS unidade, CAST(NULL AS DECIMAL(10,2)) AS aderencia_pct, "
+            "0 AS visitas_feitas, 0 AS visitas_planejadas"
+        )
+
     ge_in = ", ".join([f"'{x.replace("'", "''")}'" for x in GRUPOS_ECONOMICOS_IMPORTANTES])
     rede_in = ", ".join([f"'{x.replace("'", "''")}'" for x in REDES_IMPORTANTES])
+
+    union_parts: list[str] = []
+
+    if include_grupos:
+        union_parts.append(
+            f"""
+    SELECT
+        dge.nomegrupo AS Unidade_Agregadora,
+        bc.visitaid,
+        bc.tipocheckin
+    FROM BaseComCodigo bc
+    INNER JOIN bi_rbdistrib.dbo.dimgrupoeconomico dge ON dge.codcliente = bc.codcliente_limpo
+    WHERE dge.nomegrupo IN ({ge_in})
+""".rstrip()
+        )
+
+    if include_redes:
+        union_parts.append(
+            f"""
+    SELECT
+        drc.nomeRede AS Unidade_Agregadora,
+        bc.visitaid,
+        bc.tipocheckin
+    FROM BaseComCodigo bc
+    INNER JOIN bi_rbdistrib.dbo.dimcliente dc ON dc.codCliente = bc.codcliente_limpo
+    INNER JOIN BI_RBDISTRIB.dbo.dimRedeCliente drc ON drc.codRede = dc.codRede
+    WHERE drc.nomeRede IN ({rede_in})
+""".rstrip()
+        )
+
+    union_sql = "\n\n    UNION ALL\n\n".join(union_parts)
 
     return f"""
 WITH BaseLimpa AS (
@@ -224,8 +271,8 @@ WITH BaseLimpa AS (
         mp.ColaboradorSuperior,
         LTRIM(RTRIM(LEFT(mp.pontodevenda, CHARINDEX('-', mp.pontodevenda + '-') - 1))) AS cod_extraido
     FROM {TABLE_MONITORAMENTO} mp
-    WHERE mp.DataVisita >= CAST('{ms}' AS DATE)
-      AND mp.DataVisita < CAST('{me}' AS DATE)
+    WHERE mp.DataVisita >= CAST('{start}' AS DATE)
+      AND mp.DataVisita < CAST('{end}' AS DATE)
             AND {fora_ok}
 ),
 BaseComCodigo AS (
@@ -238,24 +285,7 @@ BaseComCodigo AS (
     FROM BaseLimpa
 ),
 UniaoVisoes AS (
-    SELECT
-        dge.nomegrupo AS Unidade_Agregadora,
-        bc.visitaid,
-        bc.tipocheckin
-    FROM BaseComCodigo bc
-    INNER JOIN bi_rbdistrib.dbo.dimgrupoeconomico dge ON dge.codcliente = bc.codcliente_limpo
-    WHERE dge.nomegrupo IN ({ge_in})
-
-    UNION ALL
-
-    SELECT
-        drc.nomeRede AS Unidade_Agregadora,
-        bc.visitaid,
-        bc.tipocheckin
-    FROM BaseComCodigo bc
-    INNER JOIN bi_rbdistrib.dbo.dimcliente dc ON dc.codCliente = bc.codcliente_limpo
-    INNER JOIN BI_RBDISTRIB.dbo.dimRedeCliente drc ON drc.codRede = dc.codRede
-    WHERE drc.nomeRede IN ({rede_in})
+{union_sql}
 )
 SELECT
     Unidade_Agregadora AS unidade,
@@ -269,3 +299,18 @@ FROM UniaoVisoes
 GROUP BY Unidade_Agregadora
 ORDER BY visitas_planejadas DESC
 """.strip()
+
+
+def grupo_rede_month_sql(month_start: date, month_end_exclusive: date) -> str:
+    # Compatibilidade: retorna grupos + redes
+    return unidades_importantes_sql(
+        month_start, month_end_exclusive, include_grupos=True, include_redes=True
+    )
+
+
+def grupos_importantes_sql(dt_start: date, dt_end_exclusive: date) -> str:
+    return unidades_importantes_sql(dt_start, dt_end_exclusive, include_grupos=True, include_redes=False)
+
+
+def redes_importantes_sql(dt_start: date, dt_end_exclusive: date) -> str:
+    return unidades_importantes_sql(dt_start, dt_end_exclusive, include_grupos=False, include_redes=True)

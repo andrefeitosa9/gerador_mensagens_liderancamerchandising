@@ -89,39 +89,45 @@ def order_areas(area_rows: list[dict]) -> list[dict]:
 
 def build_general_leader_message(
     ref_date: date,
-    month_label: str,
+    day_label: str,
+    period2_label: str,
     overall_day: AdherenceMetric,
-    overall_month: AdherenceMetric,
+    overall_period2: AdherenceMetric,
     areas_day: list[dict],
     areas_month_by_name: dict[str, AdherenceMetric],
     include_grupo_rede: bool,
     grupo_rede_day_rows: list[dict] | None = None,
     grupo_rede_month_rows: list[dict] | None = None,
+    grupo_rede_section_title: str = "🏪 Grupos/Redes Importantes",
+    include_areas_section: bool = True,
+    period2_title: str = "Mês",
 ) -> str:
     lines: list[str] = []
     lines.append(f"📊 Relatório Merchandising (ref.: {ref_date.strftime('%d/%m/%Y')})")
     lines.append("")
-    lines.append("Aderência ao Roteiro Geral")
+    lines.append(f"Aderência ao Roteiro Geral (Ontem {day_label} | {period2_title} {period2_label})")
     lines.append("")
     lines.append(
-        f"Ontem: {fmt_pct(overall_day.aderencia_pct)}  |  Mês: {fmt_pct(overall_month.aderencia_pct, with_icon=True)}"
+        f"Ontem: {fmt_pct(overall_day.aderencia_pct)}  |  {period2_title}: {fmt_pct(overall_period2.aderencia_pct, with_icon=True)}"
     )
     lines.append("")
-    lines.append("📍 Aderência ao Roteiro por Área")
-    lines.append("")
 
-    for r in order_areas(areas_day):
-        area = (r.get("area_merchan") or "Não Identificada").strip()
-        day_metric = metric_from_row(r)
-        month_metric = areas_month_by_name.get(area, AdherenceMetric(0, 0, None))
-        lines.append(f"- {area}:")
-        lines.append(
-            f"Ontem {fmt_pct(day_metric.aderencia_pct)}  |  Mês {fmt_pct(month_metric.aderencia_pct, with_icon=True)}"
-        )
+    if include_areas_section:
+        lines.append(f"📍 Aderência ao Roteiro por Área (Ontem {day_label} | {period2_title} {period2_label})")
         lines.append("")
 
-    if include_grupo_rede and grupo_rede_day_rows and grupo_rede_month_rows:
-        lines.append(f"🏪 Grupos/Redes Importantes (Mês {month_label})")
+        for r in order_areas(areas_day):
+            area = (r.get("area_merchan") or "Não Identificada").strip()
+            day_metric = metric_from_row(r)
+            month_metric = areas_month_by_name.get(area, AdherenceMetric(0, 0, None))
+            lines.append(f"- {area}:")
+            lines.append(
+                f"Ontem {fmt_pct(day_metric.aderencia_pct)}  |  {period2_title} {fmt_pct(month_metric.aderencia_pct, with_icon=True)}"
+            )
+            lines.append("")
+
+    if include_grupo_rede and grupo_rede_day_rows is not None and grupo_rede_month_rows is not None:
+        lines.append(f"{grupo_rede_section_title} ({period2_title} {period2_label})")
         lines.append("")
         
         # Criar dicionários para buscar por unidade
@@ -130,6 +136,11 @@ def build_general_leader_message(
         
         # Unir todas as unidades
         all_units = set(day_by_unit.keys()) | set(month_by_unit.keys())
+
+        if not all_units:
+            lines.append("Sem dados no período.")
+            lines.append("")
+            return "\n".join(lines).strip() + "\n"
         
         for unidade in sorted(all_units):
             if not unidade:
@@ -155,7 +166,7 @@ def build_general_leader_message(
             
             lines.append(f"- {unidade}:")
             lines.append(
-                f"Ontem {fmt_pct(day_pct)}  |  Mês {fmt_pct(month_pct, with_icon=True)}"
+                f"Ontem {fmt_pct(day_pct)}  |  {period2_title} {fmt_pct(month_pct, with_icon=True)}"
             )
             lines.append("")
 
@@ -197,5 +208,87 @@ def build_area_leader_message(
             f"Ontem {fmt_pct(d.aderencia_pct)}  |  Mês {fmt_pct(m.aderencia_pct, with_icon=True)}"
         )
         lines.append("")
+
+    return "\n".join(lines).strip() + "\n"
+
+
+def build_diretoria_message(
+    ref_date: date,
+    semana_label: str,
+    mes_label: str,
+    overall_semana: AdherenceMetric,
+    overall_mes: AdherenceMetric,
+    areas_semana: list[dict] | None = None,
+    areas_mes_by_name: dict[str, AdherenceMetric] | None = None,
+    include_areas_section: bool = True,
+    grupos_semana_rows: list[dict] | None = None,
+    grupos_mes_rows: list[dict] | None = None,
+    grupos_section_title: str = "🏪 Grupos Econômicos Importantes",
+) -> str:
+    lines: list[str] = []
+    lines.append(f"📊 Relatório Merchandising (ref.: {ref_date.strftime('%d/%m/%Y')})")
+    lines.append("")
+    lines.append(f"Aderência ao Roteiro Geral (Semana {semana_label} | Mês {mes_label})")
+    lines.append("")
+    lines.append(
+        f"Semana Anterior: {fmt_pct(overall_semana.aderencia_pct, with_icon=False)}  |  Mês: {fmt_pct(overall_mes.aderencia_pct, with_icon=True)}"
+    )
+    lines.append("")
+
+    if include_areas_section:
+        lines.append("📍 Aderência ao Roteiro por Área")
+        lines.append("")
+
+        areas_mes_by_name = areas_mes_by_name or {}
+        areas_semana = areas_semana or []
+
+        for r in order_areas(areas_semana):
+            area = (r.get("area_merchan") or "Não Identificada").strip()
+            semana_metric = metric_from_row(r)
+            mes_metric = areas_mes_by_name.get(area, AdherenceMetric(0, 0, None))
+            lines.append(f"- {area}:")
+            lines.append(
+                f"Semana {fmt_pct(semana_metric.aderencia_pct, with_icon=False)}  |  Mês {fmt_pct(mes_metric.aderencia_pct, with_icon=True)}"
+            )
+            lines.append("")
+
+    if grupos_semana_rows is not None and grupos_mes_rows is not None:
+        lines.append(f"{grupos_section_title} (Semana {semana_label} | Mês {mes_label})")
+        lines.append("")
+
+        semana_by_unit = {(r.get('unidade') or '').strip(): r for r in grupos_semana_rows}
+        mes_by_unit = {(r.get('unidade') or '').strip(): r for r in grupos_mes_rows}
+        all_units = set(semana_by_unit.keys()) | set(mes_by_unit.keys())
+
+        if not all_units:
+            lines.append("Sem dados no período.")
+            lines.append("")
+            return "\n".join(lines).strip() + "\n"
+
+        for unidade in sorted(all_units):
+            if not unidade:
+                continue
+
+            semana_r = semana_by_unit.get(unidade, {})
+            mes_r = mes_by_unit.get(unidade, {})
+
+            semana_pct = None
+            mes_pct = None
+
+            try:
+                if semana_r.get("aderencia_pct") is not None:
+                    semana_pct = float(semana_r.get("aderencia_pct"))
+            except Exception:
+                pass
+
+            try:
+                if mes_r.get("aderencia_pct") is not None:
+                    mes_pct = float(mes_r.get("aderencia_pct"))
+            except Exception:
+                pass
+
+            lines.append(f"- {unidade}:")
+            lines.append(f"Semana {fmt_pct(semana_pct, with_icon=False)}  |  Mês {fmt_pct(mes_pct, with_icon=True)}")
+            lines.append("")
 
     return "\n".join(lines).strip() + "\n"
