@@ -7,16 +7,50 @@ Notas práticas:
 """
 
 import time
+import webbrowser
 
 import pyautogui
 import pywhatkit as kit
 
 
 class WhatsAppSender:
-    def __init__(self, intervalo_entre_mensagens=15, intervalo_mesmo_numero=8, espera_pos_envio=5):
+    def __init__(
+        self,
+        intervalo_entre_mensagens=15,
+        intervalo_mesmo_numero=8,
+        espera_pos_envio=5,
+        wait_time_primeira=35,
+        wait_time_padrao=20,
+        warmup_segundos=10,
+    ):
         self.intervalo = intervalo_entre_mensagens
         self.intervalo_mesmo_numero = intervalo_mesmo_numero
         self.espera_pos_envio = espera_pos_envio
+        self.wait_time_primeira = wait_time_primeira
+        self.wait_time_padrao = wait_time_padrao
+        self.warmup_segundos = warmup_segundos
+        self._ja_enviou_algo = False
+
+    def warmup_whatsapp_web(self):
+        """Abre o WhatsApp Web para reduzir a chance do 1º envio ficar em rascunhos.
+
+        Motivo: no 1º envio, o navegador/WhatsApp Web pode ainda estar carregando.
+        O pywhatkit pode digitar a mensagem, mas o ENTER (envio) acontece cedo demais.
+        """
+        try:
+            print("🌐 Abrindo WhatsApp Web (warm-up)...")
+            webbrowser.open("https://web.whatsapp.com")
+            if self.warmup_segundos and self.warmup_segundos > 0:
+                print(f"  ⏱ Aguardando {self.warmup_segundos}s para carregar...")
+                time.sleep(self.warmup_segundos)
+            try:
+                pyautogui.press("esc")
+            except Exception:
+                pass
+            return True
+        except Exception as e:
+            print(f"  ⚠ Warm-up falhou: {e}")
+            return False
 
     def fechar_aba(self):
         try:
@@ -42,14 +76,26 @@ class WhatsAppSender:
         try:
             print(f"⏳ Enviando mensagem para {telefone}...")
 
+            wait_time = self.wait_time_primeira if not self._ja_enviou_algo else self.wait_time_padrao
+
             # Mantém a aba aberta; fecharemos manualmente após uma espera segura.
             kit.sendwhatmsg_instantly(
                 phone_no=telefone,
                 message=mensagem,
-                wait_time=20,
+                wait_time=wait_time,
                 tab_close=False,
                 close_time=3,
             )
+
+            # Redundância: em alguns cenários o texto é digitado, mas o ENTER não ocorre.
+            # Pressionar ENTER aqui costuma "destravar" o primeiro envio.
+            try:
+                time.sleep(0.8)
+                pyautogui.press("enter")
+                time.sleep(0.4)
+                pyautogui.press("enter")
+            except Exception:
+                pass
 
             # Aguarda a mensagem efetivamente ser enviada antes de fechar.
             if self.espera_pos_envio and self.espera_pos_envio > 0:
@@ -66,6 +112,7 @@ class WhatsAppSender:
                 self.fechar_aba()
 
             print(f"✓ Mensagem enviada para {telefone}")
+            self._ja_enviou_algo = True
             return True
         except Exception as e:
             print(f"✗ Erro ao enviar mensagem para {telefone}: {e}")
@@ -84,6 +131,9 @@ class WhatsAppSender:
         print(f"{'='*60}\n")
 
         try:
+            if not modo_teste:
+                self.warmup_whatsapp_web()
+
             for i, item in enumerate(mensagens_envio, 1):
                 destinatario = item["destinatario"]
                 telefone = item["telefone"]

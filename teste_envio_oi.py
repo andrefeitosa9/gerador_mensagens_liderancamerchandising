@@ -20,15 +20,24 @@ from whatsapp_sender import WhatsAppSender
 
 def main() -> int:
     telefone = TEST_PHONE_E164
-    mensagem = "oi"
+    mensagens = ["oi", "oi (2)"]
 
     print("=" * 60)
-    print("TESTE WHATSAPP - ENVIO DE 'OI'")
+    print("TESTE WHATSAPP - ENVIO DE 2 MENSAGENS")
     print(f"Telefone destino: {telefone}")
     print("=" * 60)
 
     sender = WhatsAppSender(intervalo_entre_mensagens=2, intervalo_mesmo_numero=2, espera_pos_envio=5)
-    ok = sender.enviar_mensagem(telefone, mensagem, fechar_aba=True)
+    lote = [
+        {
+            "destinatario": "TESTE",
+            "telefone": telefone,
+            "mensagens": mensagens,
+            "tipo": "teste",
+        }
+    ]
+    resumo = sender.enviar_mensagens_lote(lote, modo_teste=False)
+    ok = resumo.get("falhas", 1) == 0
 
     # Best-effort: tenta fechar o navegador ao final para não acumular janelas.
     try:
