@@ -23,6 +23,10 @@ cd /d "%SCRIPT_DIR%" || (
 
 set LOG_FILE=%SCRIPT_DIR%run_teste.log
 
+REM Preferir Python da venv se existir (evita erro 9009 / alias da Microsoft Store)
+set PY_EXE=python
+if exist "%SCRIPT_DIR%.venv\Scripts\python.exe" set PY_EXE=%SCRIPT_DIR%.venv\Scripts\python.exe
+
 echo.
 echo ============================================================
 echo Iniciando TESTE em %DATE% %TIME%
@@ -31,10 +35,10 @@ echo Log:   %LOG_FILE%
 echo ============================================================
 echo.
 
-echo Executando: python main.py --teste
+echo Executando: %PY_EXE% main.py --teste
 echo.
 
-python main.py --teste 1>>"%LOG_FILE%" 2>>&1
+"%PY_EXE%" main.py --teste 1>>"%LOG_FILE%" 2>>&1
 set EXIT_CODE=%ERRORLEVEL%
 
 echo.

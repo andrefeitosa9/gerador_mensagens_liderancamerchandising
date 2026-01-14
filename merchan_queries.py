@@ -9,6 +9,7 @@ from config import (
     GRUPOS_ECONOMICOS_IMPORTANTES,
     REDES_IMPORTANTES,
     TABLE_AREA_MERCHAN,
+    TABLE_FERIADO_MERCHAN,
     TABLE_MONITORAMENTO,
     TABLE_TELEFONE_LIDERANCA,
 )
@@ -34,6 +35,20 @@ def _fora_do_roteiro_nao_sql(alias: str = "mp") -> str:
     )
 
 
+def _not_holiday_sql(alias: str = "mp", date_col: str = "DataVisita") -> str:
+    """Predicate to exclude holidays from adherence calculation.
+
+    If CAST(<alias>.<date_col> AS DATE) exists in dimFeriadoMerchan, the row is ignored.
+    """
+    col = f"{alias}.{date_col}"
+    return (
+        "NOT EXISTS ("
+        f"SELECT 1 FROM {TABLE_FERIADO_MERCHAN} f "
+        f"WHERE f.data = CAST({col} AS DATE)"
+        ")"
+    )
+
+
 def leaders_with_area_and_phone_sql() -> str:
     return f"""
 SELECT DISTINCT
@@ -51,6 +66,7 @@ def overall_adherence_sql(dt_start: date, dt_end: date) -> str:
     end = sql_date(dt_end)
     checkins = _checkin_in_list_sql()
     fora_ok = _fora_do_roteiro_nao_sql("mp")
+    not_holiday = _not_holiday_sql("mp", "DataVisita")
 
     return f"""
 SELECT
@@ -64,6 +80,7 @@ FROM {TABLE_MONITORAMENTO} mp
 WHERE mp.DataVisita >= CAST('{start}' AS DATE)
   AND mp.DataVisita < CAST('{end}' AS DATE)
     AND {fora_ok}
+        AND {not_holiday}
 """.strip()
 
 
@@ -72,6 +89,7 @@ def area_totals_sql(dt_start: date, dt_end: date) -> str:
     end = sql_date(dt_end)
     checkins = _checkin_in_list_sql()
     fora_ok = _fora_do_roteiro_nao_sql("mp")
+    not_holiday = _not_holiday_sql("mp", "DataVisita")
 
     return f"""
 SELECT
@@ -88,6 +106,7 @@ LEFT JOIN {TABLE_AREA_MERCHAN} dam
 WHERE mp.DataVisita >= CAST('{start}' AS DATE)
   AND mp.DataVisita < CAST('{end}' AS DATE)
     AND {fora_ok}
+        AND {not_holiday}
 GROUP BY dam.area_merchan
 ORDER BY area_merchan ASC
 """.strip()
@@ -99,6 +118,7 @@ def leader_area_total_sql(leader_name: str, dt_start: date, dt_end: date) -> str
     checkins = _checkin_in_list_sql()
     leader_escaped = leader_name.replace("'", "''")
     fora_ok = _fora_do_roteiro_nao_sql("mp")
+    not_holiday = _not_holiday_sql("mp", "DataVisita")
 
     return f"""
 SELECT
@@ -116,6 +136,7 @@ WHERE mp.ColaboradorSuperior = '{leader_escaped}'
   AND mp.DataVisita >= CAST('{start}' AS DATE)
   AND mp.DataVisita < CAST('{end}' AS DATE)
     AND {fora_ok}
+        AND {not_holiday}
 GROUP BY dam.area_merchan
 """.strip()
 
@@ -127,6 +148,7 @@ def area_total_by_area_sql(area_name: str, dt_start: date, dt_end: date) -> str:
     checkins = _checkin_in_list_sql()
     area_escaped = area_name.replace("'", "''")
     fora_ok = _fora_do_roteiro_nao_sql("mp")
+    not_holiday = _not_holiday_sql("mp", "DataVisita")
 
     return f"""
 SELECT
@@ -144,6 +166,7 @@ WHERE ISNULL(dam.area_merchan, 'Não Identificada') = '{area_escaped}'
   AND mp.DataVisita >= CAST('{start}' AS DATE)
   AND mp.DataVisita < CAST('{end}' AS DATE)
     AND {fora_ok}
+        AND {not_holiday}
 GROUP BY dam.area_merchan
 """.strip()
 
@@ -154,6 +177,7 @@ def leader_collaborators_sql(leader_name: str, dt_start: date, dt_end: date) -> 
     checkins = _checkin_in_list_sql()
     leader_escaped = leader_name.replace("'", "''")
     fora_ok = _fora_do_roteiro_nao_sql("mp")
+    not_holiday = _not_holiday_sql("mp", "DataVisita")
 
     return f"""
 SELECT
@@ -169,6 +193,7 @@ WHERE mp.ColaboradorSuperior = '{leader_escaped}'
   AND mp.DataVisita >= CAST('{start}' AS DATE)
   AND mp.DataVisita < CAST('{end}' AS DATE)
     AND {fora_ok}
+        AND {not_holiday}
 GROUP BY mp.Colaborador
 """.strip()
 
@@ -184,6 +209,7 @@ def area_collaborators_sql(area_name: str, dt_start: date, dt_end: date) -> str:
     checkins = _checkin_in_list_sql()
     area_escaped = area_name.replace("'", "''")
     fora_ok = _fora_do_roteiro_nao_sql("mp")
+    not_holiday = _not_holiday_sql("mp", "DataVisita")
 
     return f"""
 SELECT
@@ -201,6 +227,7 @@ WHERE ISNULL(dam.area_merchan, 'Não Identificada') = '{area_escaped}'
   AND mp.DataVisita >= CAST('{start}' AS DATE)
   AND mp.DataVisita < CAST('{end}' AS DATE)
     AND {fora_ok}
+        AND {not_holiday}
 GROUP BY mp.Colaborador
 """.strip()
 
@@ -220,6 +247,7 @@ def unidades_importantes_sql(
     end = sql_date(dt_end_exclusive)
     checkins = _checkin_in_list_sql()
     fora_ok = _fora_do_roteiro_nao_sql("mp")
+    not_holiday = _not_holiday_sql("mp", "DataVisita")
 
     if not include_grupos and not include_redes:
         # Query vazia (retorna 0 linhas)
@@ -274,6 +302,7 @@ WITH BaseLimpa AS (
     WHERE mp.DataVisita >= CAST('{start}' AS DATE)
       AND mp.DataVisita < CAST('{end}' AS DATE)
             AND {fora_ok}
+                            AND {not_holiday}
 ),
 BaseComCodigo AS (
     SELECT

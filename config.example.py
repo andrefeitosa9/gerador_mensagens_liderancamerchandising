@@ -31,6 +31,7 @@ DIAS_OFFSET = {
 TABLE_AREA_MERCHAN = "Rbdistrib_Trade.dbo.dimAreaMerchan"
 TABLE_TELEFONE_LIDERANCA = "Rbdistrib_Trade.dbo.dimTelefoneMerchanLideranca"
 TABLE_MONITORAMENTO = "Monitoramento_Promotor"  # normalmente já está no rbdistrib_Trade
+TABLE_FERIADO_MERCHAN = "Rbdistrib_Trade.dbo.dimFeriadoMerchan"  # datas a excluir da conta de aderência
 
 # Valores que contam como visita feita
 CHECKIN_VALIDOS = ("Manual", "Manual e GPS")

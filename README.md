@@ -16,6 +16,7 @@ Gera e envia via WhatsApp Web um resumo diário de **aderência ao roteiro** par
 - Líderes de área recebem:
   - Aderência da área (Ontem e Mês)
   - Colaboradores da área (ordem alfabética) com Ontem e Mês
+- Datas cadastradas em `Rbdistrib_Trade.dbo.dimFeriadoMerchan` **não entram na conta** (visitas planejadas/feitas em feriado são ignoradas).
 
 ## Pré-requisitos
 

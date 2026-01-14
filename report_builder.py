@@ -105,6 +105,7 @@ def build_general_leader_message(
     lines: list[str] = []
     lines.append("📊 Relatório Merchandising")
     lines.append("")
+    lines.append("")
     lines.append(f"Aderência ao Roteiro Geral (Ontem {day_label} | {period2_title} {period2_label})")
     lines.append("")
     lines.append(
@@ -186,6 +187,7 @@ def build_area_leader_message(
     lines: list[str] = []
     lines.append(f"📊 Relatório Merchan - {area_name}")
     lines.append("")
+    lines.append("")
     lines.append(f"Aderência ao Roteiro {area_name}")
     lines.append("")
     lines.append(
@@ -236,6 +238,7 @@ def build_diretoria_message(
 ) -> str:
     lines: list[str] = []
     lines.append("📊 Relatório Merchandising")
+    lines.append("")
     lines.append("")
     lines.append(f"Aderência ao Roteiro Geral (Semana {semana_label} | Mês {mes_label})")
     lines.append("")
