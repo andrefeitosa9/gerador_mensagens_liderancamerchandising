@@ -3,51 +3,42 @@ setlocal
 
 title Gerador Mensagens Merchan
 
-REM Forca UTF-8 no console para evitar erro de encoding em prints
+REM Forca UTF-8 no console
 chcp 65001 >nul
 set PYTHONUTF8=1
 set PYTHONIOENCODING=utf-8
 
-REM Usa a pasta do próprio .bat (evita problemas de acentuação/codificação no CMD)
-set SCRIPT_DIR=%~dp0
+REM ============================================================
+REM 1. COLE O CAMINHO QUE VOCÊ COPIOU ENTRE AS ASPAS ABAIXO:
+set PY_EXE="C:\Users\Andre.Feitosa\AppData\Local\Python\pythoncore-3.14-64\python.exe"
+REM ============================================================
 
+REM Usa a pasta do próprio .bat
+set SCRIPT_DIR=%~dp0
 cd /d "%SCRIPT_DIR%" || (
-	echo ERRO: nao foi possivel acessar a pasta: "%SCRIPT_DIR%"
-	pause
-	exit /b 1
+    echo ERRO: nao foi possivel acessar a pasta: "%SCRIPT_DIR%"
+    pause
+    exit /b 1
 )
 
 set LOG_FILE=%SCRIPT_DIR%run.log
 
-echo.
 echo ============================================================
 echo Iniciando execucao em %DATE% %TIME%
-echo Pasta: %SCRIPT_DIR%
-echo Log:   %LOG_FILE%
+echo Executando: %PY_EXE% main.py
 echo ============================================================
-echo.
 
-REM Por padrao roda envio real. Para apenas ver no terminal: run.bat --teste
-set MODE=
-if /I "%~1"=="--teste" set MODE=--teste
+REM Se houver argumento --teste, ele será repassado
+set MODE=%~1
 
-REM Preferir Python da venv se existir (evita erro 9009 / alias da Microsoft Store)
-set PY_EXE=python
-if exist "%SCRIPT_DIR%.venv\Scripts\python.exe" set PY_EXE=%SCRIPT_DIR%.venv\Scripts\python.exe
-
-echo Executando: %PY_EXE% main.py %MODE%
-echo.
-
-"%PY_EXE%" main.py %MODE% 1>>"%LOG_FILE%" 2>>&1
+REM Executa o script jogando tudo para o log
+%PY_EXE% main.py %MODE% 1>>"%LOG_FILE%" 2>>&1
 set EXIT_CODE=%ERRORLEVEL%
 
 echo.
-echo ============================================================
 echo Finalizado com codigo: %EXIT_CODE%
 echo (Consulte o log para detalhes: %LOG_FILE%)
 echo ============================================================
-echo.
 
-pause
-
+if /I "%~1" neq "--silent" pause
 endlocal

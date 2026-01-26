@@ -20,7 +20,17 @@ from __future__ import annotations
 import argparse
 from datetime import date, datetime, timedelta
 
-from config import MODO_TESTE, TEST_PHONE_E164, USE_TEST_PHONE
+from config import (
+	MODO_TESTE,
+	TEST_PHONE_E164,
+	USE_TEST_PHONE,
+	WA_ESPERA_POS_ENVIO,
+	WA_INTERVALO_ENTRE_MENSAGENS,
+	WA_INTERVALO_MESMO_NUMERO,
+	WA_WAIT_TIME_PADRAO,
+	WA_WAIT_TIME_PRIMEIRA,
+	WA_WARMUP_SEGUNDOS,
+)
 from database import Database
 from merchan_queries import (
 	area_total_by_area_sql,
@@ -110,9 +120,10 @@ def main() -> int:
 	weekday = hoje.weekday()  # 0=segunda
 	include_grupo_rede_merchan = True  # TODO DIA
 	include_grupos_diretoria = weekday == 0  # SOMENTE SEGUNDA
-	ws = week_start(ref)
-	ws_prev = ws - timedelta(days=7)
-	we_prev = ws_prev + timedelta(days=6)  # ate o sabado anterior (exclusive)
+	# Diretoria (segunda): a "semana anterior" é a semana que termina no sábado de referência (ref).
+	# Ex.: se hoje é 19/01 (seg), ref=17/01 (sáb) => semana desejada: 12/01 a 17/01.
+	ws_prev = week_start(ref)  # segunda-feira da semana do ref
+	we_prev = ws_prev + timedelta(days=6)  # fim exclusivo (domingo), inclui segunda..sábado
 	prev_week_label = f"{ws_prev.strftime('%d/%m')} a {(ws_prev + timedelta(days=5)).strftime('%d/%m')}"
 
 	db = Database()
@@ -316,7 +327,14 @@ def main() -> int:
 			return 0
 
 		from whatsapp_sender import WhatsAppSender
-		sender = WhatsAppSender(intervalo_entre_mensagens=7, intervalo_mesmo_numero=5, espera_pos_envio=5)
+		sender = WhatsAppSender(
+			intervalo_entre_mensagens=WA_INTERVALO_ENTRE_MENSAGENS,
+			intervalo_mesmo_numero=WA_INTERVALO_MESMO_NUMERO,
+			espera_pos_envio=WA_ESPERA_POS_ENVIO,
+			wait_time_primeira=WA_WAIT_TIME_PRIMEIRA,
+			wait_time_padrao=WA_WAIT_TIME_PADRAO,
+			warmup_segundos=WA_WARMUP_SEGUNDOS,
+		)
 		sender.enviar_mensagens_lote(mensagens_envio, modo_teste=False)
 		return 0
 	finally:

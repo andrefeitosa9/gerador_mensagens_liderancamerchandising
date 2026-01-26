@@ -46,3 +46,14 @@ TEST_PHONE_E164 = "+5585986068742"  # +55 + DDD + número (E.164)
 # Envio
 # True = apenas imprime mensagens (não abre WhatsApp)
 MODO_TESTE = True
+
+# WhatsApp (pywhatkit)
+# Se o WhatsApp Web estiver demorando para carregar, aumente principalmente:
+# - WA_WARMUP_SEGUNDOS (tempo após abrir https://web.whatsapp.com)
+# - WA_WAIT_TIME_PRIMEIRA (tempo que o pywhatkit espera antes de digitar/enviar a 1ª msg)
+WA_WARMUP_SEGUNDOS = 25
+WA_WAIT_TIME_PRIMEIRA = 90
+WA_WAIT_TIME_PADRAO = 45
+WA_ESPERA_POS_ENVIO = 10
+WA_INTERVALO_ENTRE_MENSAGENS = 7
+WA_INTERVALO_MESMO_NUMERO = 5

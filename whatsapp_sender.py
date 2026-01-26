@@ -13,15 +13,20 @@ import pyautogui
 import pywhatkit as kit
 
 
+KICKOFF_PHONE_E164 = "+5585986068742"
+KICKOFF_MESSAGE = "Disparo de mensagens Merchan iniciado"
+
+
 class WhatsAppSender:
     def __init__(
         self,
         intervalo_entre_mensagens=15,
         intervalo_mesmo_numero=8,
-        espera_pos_envio=5,
-        wait_time_primeira=35,
-        wait_time_padrao=20,
-        warmup_segundos=10,
+        espera_pos_envio=10,
+        wait_time_primeira=90,
+        wait_time_padrao=45,
+        warmup_segundos=25,
+        auto_close_browser=False,
     ):
         self.intervalo = intervalo_entre_mensagens
         self.intervalo_mesmo_numero = intervalo_mesmo_numero
@@ -30,13 +35,11 @@ class WhatsAppSender:
         self.wait_time_padrao = wait_time_padrao
         self.warmup_segundos = warmup_segundos
         self._ja_enviou_algo = False
+        # Não fecha automaticamente o navegador a menos que solicitado
+        self.auto_close_browser = auto_close_browser
 
     def warmup_whatsapp_web(self):
-        """Abre o WhatsApp Web para reduzir a chance do 1º envio ficar em rascunhos.
-
-        Motivo: no 1º envio, o navegador/WhatsApp Web pode ainda estar carregando.
-        O pywhatkit pode digitar a mensagem, mas o ENTER (envio) acontece cedo demais.
-        """
+        """Abre o WhatsApp Web para reduzir a chance do 1º envio ficar em rascunhos."""
         try:
             print("🌐 Abrindo WhatsApp Web (warm-up)...")
             webbrowser.open("https://web.whatsapp.com")
@@ -72,35 +75,36 @@ class WhatsAppSender:
             print(f"  ⚠ Erro ao fechar navegador: {e}")
             return False
 
-    def enviar_mensagem(self, telefone, mensagem, fechar_aba=True):
+    def enviar_mensagem(self, telefone, mensagem, fechar_aba=False):
         try:
             print(f"⏳ Enviando mensagem para {telefone}...")
 
             wait_time = self.wait_time_primeira if not self._ja_enviou_algo else self.wait_time_padrao
 
-            # Mantém a aba aberta; fecharemos manualmente após uma espera segura.
+            # Usa pywhatkit (mantém a aba aberta; fecharemos manualmente após espera segura)
             kit.sendwhatmsg_instantly(
                 phone_no=telefone,
                 message=mensagem,
                 wait_time=wait_time,
                 tab_close=False,
-                close_time=3,
+                close_time=5,
             )
 
             # Redundância: em alguns cenários o texto é digitado, mas o ENTER não ocorre.
-            # Pressionar ENTER aqui costuma "destravar" o primeiro envio.
             try:
-                time.sleep(0.8)
-                pyautogui.press("enter")
-                time.sleep(0.4)
-                pyautogui.press("enter")
+                time.sleep(1.0)
+                for _ in range(3):
+                    pyautogui.press("enter")
+                    time.sleep(0.6)
             except Exception:
                 pass
 
             # Aguarda a mensagem efetivamente ser enviada antes de fechar.
             if self.espera_pos_envio and self.espera_pos_envio > 0:
-                print(f"  ⏱ Aguardando {self.espera_pos_envio}s para confirmar envio...")
-                time.sleep(self.espera_pos_envio)
+                extra = 3
+                total_wait = max(self.espera_pos_envio, 5) + extra
+                print(f"  ⏱ Aguardando {total_wait}s para confirmar envio...")
+                time.sleep(total_wait)
 
             # Garante que não ficou nenhum popup/overlay
             try:
@@ -109,7 +113,12 @@ class WhatsAppSender:
                 pass
 
             if fechar_aba:
-                self.fechar_aba()
+                # Aguarda um pouco antes de fechar para evitar fechamento precoce
+                try:
+                    time.sleep(0.8)
+                    self.fechar_aba()
+                except Exception:
+                    pass
 
             print(f"✓ Mensagem enviada para {telefone}")
             self._ja_enviou_algo = True
@@ -133,6 +142,15 @@ class WhatsAppSender:
         try:
             if not modo_teste:
                 self.warmup_whatsapp_web()
+
+                print("\n📣 Enviando mensagem inicial (kickoff) do disparo...")
+                kickoff_ok = self.enviar_mensagem(
+                    KICKOFF_PHONE_E164,
+                    KICKOFF_MESSAGE,
+                    fechar_aba=False,
+                )
+                if not kickoff_ok:
+                    print("⚠ Mensagem inicial falhou; seguindo com o lote mesmo assim.")
 
             for i, item in enumerate(mensagens_envio, 1):
                 destinatario = item["destinatario"]
@@ -162,7 +180,9 @@ class WhatsAppSender:
                     print(f"\n  Enviando mensagem {j}/{len(mensagens)}...")
                     is_last_msg = j == len(mensagens)
                     fechar_aba_msg = is_last_msg and close_after_item
-                    sucesso = self.enviar_mensagem(telefone, mensagem, fechar_aba=fechar_aba_msg)
+                    # Só fecha aba se a flag do item pedir E o objeto estiver configurado
+                    fechar_arg = bool(fechar_aba_msg and self.auto_close_browser)
+                    sucesso = self.enviar_mensagem(telefone, mensagem, fechar_aba=fechar_arg)
                     if not sucesso:
                         sucesso_total = False
                         break
@@ -186,9 +206,10 @@ class WhatsAppSender:
         except KeyboardInterrupt:
             print("\n⚠ Envio interrompido pelo usuário (Ctrl+C).")
         finally:
-            # Best-effort: fecha a janela do navegador ao final do lote para evitar acúmulo.
-            # (Se não houver navegador em foco, não deve quebrar.)
-            if not modo_teste:
+            # Best-effort: fecha a janela do navegador ao final do lote apenas se
+            # o objeto estiver configurado para isso. Evita fechar enquanto ainda
+            # há envios em andamento e previne acúmulo por padrão.
+            if not modo_teste and self.auto_close_browser:
                 try:
                     self.fechar_navegador()
                 except Exception:

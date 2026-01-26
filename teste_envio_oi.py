@@ -14,7 +14,15 @@ from __future__ import annotations
 
 import sys
 
-from config import TEST_PHONE_E164
+from config import (
+    TEST_PHONE_E164,
+    WA_ESPERA_POS_ENVIO,
+    WA_INTERVALO_ENTRE_MENSAGENS,
+    WA_INTERVALO_MESMO_NUMERO,
+    WA_WAIT_TIME_PADRAO,
+    WA_WAIT_TIME_PRIMEIRA,
+    WA_WARMUP_SEGUNDOS,
+)
 from whatsapp_sender import WhatsAppSender
 
 
@@ -27,7 +35,14 @@ def main() -> int:
     print(f"Telefone destino: {telefone}")
     print("=" * 60)
 
-    sender = WhatsAppSender(intervalo_entre_mensagens=2, intervalo_mesmo_numero=2, espera_pos_envio=5)
+    sender = WhatsAppSender(
+        intervalo_entre_mensagens=WA_INTERVALO_ENTRE_MENSAGENS,
+        intervalo_mesmo_numero=WA_INTERVALO_MESMO_NUMERO,
+        espera_pos_envio=WA_ESPERA_POS_ENVIO,
+        wait_time_primeira=WA_WAIT_TIME_PRIMEIRA,
+        wait_time_padrao=WA_WAIT_TIME_PADRAO,
+        warmup_segundos=WA_WARMUP_SEGUNDOS,
+    )
     lote = [
         {
             "destinatario": "TESTE",
@@ -39,11 +54,7 @@ def main() -> int:
     resumo = sender.enviar_mensagens_lote(lote, modo_teste=False)
     ok = resumo.get("falhas", 1) == 0
 
-    # Best-effort: tenta fechar o navegador ao final para não acumular janelas.
-    try:
-        sender.fechar_navegador()
-    except Exception:
-        pass
+    # Não fecha automaticamente o navegador para evitar fechar antes do envio.
 
     return 0 if ok else 1
 
