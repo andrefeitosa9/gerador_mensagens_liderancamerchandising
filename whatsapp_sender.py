@@ -13,7 +13,7 @@ import pyautogui
 import pywhatkit as kit
 
 
-KICKOFF_PHONE_E164 = "+5585986068742"
+KICKOFF_PHONE_E164 = "+5585989564518"
 KICKOFF_MESSAGE = "Disparo de mensagens Merchan iniciado"
 
 
